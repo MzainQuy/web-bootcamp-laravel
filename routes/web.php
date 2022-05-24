@@ -1,8 +1,9 @@
 <?php
 
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\user\UserCheckoutController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
-
 
 
 /*
@@ -19,15 +20,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
-Route::get('checkout', function () {
-    return view('checkout');
-})->name('checkout');
-Route::get('checkout-success', function () {
-    return view('success-checkout');
-})->name('checkout-success');
-Route::get('login', function () {
-    return view('login');
-})->name('login');
+
+
 
 
 // socialate route
@@ -35,8 +29,19 @@ Route::get('sign-in-google', [UserController::class, 'google'])->name('user.logi
 Route::get('auth/google/callback', [UserController::class, 'HandleProviderCallback'])->name('user.login.callback');
 
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth'])->name('dashboard');
+
+Route::middleware(['auth'])->group(function () {
+    // checkout route
+    Route::get('checkout/success', [UserCheckoutController::class, 'success'])->name('cheackout.success');
+    Route::get('checkout/{camp:slug}', [UserCheckoutController::class, 'create'])->name('cheackout.create');
+    Route::post('checkout/{camp}', [UserCheckoutController::class, 'store'])->name('cheackout.store');
+
+    // user dashboard route
+    Route::get('dashboard', [HomeController::class, 'dashboard'])->name('dashboard');
+});
+
+// Route::get('/dashboard', function () {
+//     return view('dashboard');
+// })->middleware(['auth'])->name('dashboard');
 
 require __DIR__ . '/auth.php';
