@@ -7,6 +7,7 @@ use App\Models\Checkout;
 use App\Models\Camp;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Requests\User\Checkout\Store;
 
 class UserCheckoutController extends Controller
 {
@@ -25,8 +26,20 @@ class UserCheckoutController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function create(Camp $camp)
+    public function create(Request $request, Camp $camp)
     {
+        // validation and send message
+        if ($camp->isRegistered) {
+            // message session
+            $request->session()->flash('error', "You Already Registered on {$camp->title} camp.");
+            return redirect(route('dashboard'));
+
+            // and can use with() method for send message validation
+            // return redirect(route('dashboard'))->with($request->session()->flash('error', "You Already Registered on {$camp->title} camp"));
+
+            // or use this
+            // return redirect(route('dashboard'))->with('error', "You Already Registered on {$camp->title} camp");
+        }
         return view('checkout.create', [
             'camp' => $camp
         ]);
@@ -38,7 +51,7 @@ class UserCheckoutController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request, Camp $camp)
+    public function store(Store $request, Camp $camp)
     {
         // mapping request data
         $data = $request->all();
@@ -52,8 +65,8 @@ class UserCheckoutController extends Controller
         $user->occupation = $data['occupation'];
         $user->save();
 
-        //create checkout
-        $checkout = Checkout::create($data);
+        //create checkout user
+        Checkout::create($data);
         return redirect(route('cheackout.success'));
     }
 

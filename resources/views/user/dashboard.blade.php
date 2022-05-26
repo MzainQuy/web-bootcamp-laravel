@@ -14,6 +14,7 @@
                 </div>
             </div>
             <div class="row my-5">
+                @include('components.alert')
                 <table class="table">
                     <tbody>
                         @forelse ($checkout as $item)
@@ -33,10 +34,10 @@
                                     <strong>{{ $item->Camp->price }}K</strong>
                                 </td>
                                 <td>
-                                    @if ($item->is_paid)
+                                    @if ($item->is_paid == true)
                                         <strong class="text-green">Payment success</strong>
                                     @else
-                                        <strong>Waiting For Payment</strong>
+                                        <strong class="text-warning">Waiting For Payment</strong>
                                     @endif
                                 </td>
                                 <td>
