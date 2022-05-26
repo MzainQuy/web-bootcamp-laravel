@@ -8,6 +8,8 @@ use App\Models\Camp;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\User\Checkout\Store;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\Checkout\AfterCheckout;
 
 class UserCheckoutController extends Controller
 {
@@ -66,7 +68,11 @@ class UserCheckoutController extends Controller
         $user->save();
 
         //create checkout user
-        Checkout::create($data);
+        $checkout = Checkout::create($data);
+
+        // sending email
+        Mail::to(Auth::user()->email)->send(new AfterCheckout($checkout));
+
         return redirect(route('cheackout.success'));
     }
 
@@ -118,5 +124,10 @@ class UserCheckoutController extends Controller
     public function success()
     {
         return view('checkout.success');
+    }
+
+    public function invoice(Checkout $checkout)
+    {
+        return $checkout;
     }
 }
