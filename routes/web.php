@@ -2,10 +2,11 @@
 
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\user\UserCheckoutController;
+use App\Http\Controllers\user\DashboardController as UserDashboard;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboard;
+use App\Http\Controllers\Admin\CheckoutController as AdminCheckout;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
-
-
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -32,13 +33,24 @@ Route::get('auth/google/callback', [UserController::class, 'HandleProviderCallba
 
 Route::middleware(['auth'])->group(function () {
     // checkout route
-    Route::get('checkout/success', [UserCheckoutController::class, 'success'])->name('cheackout.success');
-    Route::get('checkout/{camp:slug}', [UserCheckoutController::class, 'create'])->name('cheackout.create');
-    Route::post('checkout/{camp}', [UserCheckoutController::class, 'store'])->name('cheackout.store');
+    Route::get('checkout/success', [UserCheckoutController::class, 'success'])->name('cheackout.success')->middleware('ensureUserRole:user');
+    Route::get('checkout/{camp:slug}', [UserCheckoutController::class, 'create'])->name('cheackout.create')->middleware('ensureUserRole:user');
+    Route::post('checkout/{camp}', [UserCheckoutController::class, 'store'])->name('cheackout.store')->middleware('ensureUserRole:user');
 
-    // user dashboard route
+    // dashboard route
     Route::get('dashboard', [HomeController::class, 'dashboard'])->name('dashboard');
-    Route::get('dashboard/checkout/invoice/{checkout}', [UserCheckoutController::class, 'invoice'])->name('user.checkout.invoice');
+
+    // user Dashboard route
+    Route::prefix('user/dashboard')->namespace('User')->name('user.')->middleware('ensureUserRole:user')->group(function () {
+        Route::get('/', [UserDashboard::class, 'index'])->name('dashboard');
+    });
+    // admin Dashboard route
+    Route::prefix('admin/dashboard')->namespace('Admin')->name('admin.')->middleware('ensureUserRole:admin')->group(function () {
+        Route::get('/', [AdminDashboard::class, 'index'])->name('dashboard');
+
+        // admin checkout route
+        Route::post('checkout/{checkout:id}', [AdminCheckout::class, 'update'])->name('checkout.update');
+    });
 });
 
 // Route::get('/dashboard', function () {

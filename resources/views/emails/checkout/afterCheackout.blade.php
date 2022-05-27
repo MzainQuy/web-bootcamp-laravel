@@ -5,8 +5,8 @@
     <br>
     thank you for pay this bootcamp
 
-    @component('mail::button', ['url' => route('user.checkout.invoice', $checkout->id)])
-        get Invoice
+    @component('mail::button', ['url' => route('dashboard')])
+        My Dashboard
     @endcomponent
 
     Thanks,<br>

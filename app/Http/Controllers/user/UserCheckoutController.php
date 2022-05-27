@@ -34,7 +34,7 @@ class UserCheckoutController extends Controller
         if ($camp->isRegistered) {
             // message session
             $request->session()->flash('error', "You Already Registered on {$camp->title} camp.");
-            return redirect(route('dashboard'));
+            return redirect(route('user.dashboard'));
 
             // and can use with() method for send message validation
             // return redirect(route('dashboard'))->with($request->session()->flash('error', "You Already Registered on {$camp->title} camp"));
@@ -68,6 +68,7 @@ class UserCheckoutController extends Controller
         $user->save();
 
         //create checkout user
+        // this variabel create data checkout
         $checkout = Checkout::create($data);
 
         // sending email
@@ -124,10 +125,5 @@ class UserCheckoutController extends Controller
     public function success()
     {
         return view('checkout.success');
-    }
-
-    public function invoice(Checkout $checkout)
-    {
-        return $checkout;
     }
 }
