@@ -12,14 +12,14 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\Checkout\AfterCheckout;
 use Illuminate\Support\Str;
 use Midtrans;
+
 class UserCheckoutController extends Controller
 {
     public function __construct()
     {
         Midtrans\Config::$serverKey = env('MIDTRANS_ SERVERKEY');
-        Midtrans\Config::$isProduction = env('MIDTRANS_IS_PRODUCTION') ;
-        Midtrans\Config::$isSanitized = env('MIDTRANS_IS_SANITIZED') ;
-        Midtrans\Config::$is3ds = env('MIDTRANS_IS_3DS'):
+        Midtrans\Config::$isProduction = env('MIDTRANS_IS_PRODUCTION');
+        Midtrans\Config::$isSanitized = env('MIDTRANS_IS_SANITIZED');
     }
 
     /**
