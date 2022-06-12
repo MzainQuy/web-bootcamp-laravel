@@ -31,13 +31,14 @@
                                     </p>
                                 </td>
                                 <td>
-                                    <strong>{{ $item->Camp->price }}K</strong>
+                                    <strong>{{ $item->Camp->price }}</strong>
                                 </td>
                                 <td>
-                                    @if ($item->is_paid == true)
-                                        <strong class="text-green">Payment success</strong>
-                                    @else
-                                        <strong class="text-warning">Waiting For Payment</strong>
+                                    <strong>{{ $item->payment_status }}</strong>
+                                </td>
+                                <td>
+                                    @if ($item->payment_status == 'waiting')
+                                        <a href="{{ $item->midtrans_url }}" class="btn btn-primary">Pay Here</a>
                                     @endif
                                 </td>
                                 <td>
@@ -49,7 +50,7 @@
                             </tr>
                         @empty
                             <tr colspan='5'>
-                                <h3>No Data</h3>
+                                <h3>No Camp Registered</h3>
                             </tr>
                         @endforelse
                     </tbody>
