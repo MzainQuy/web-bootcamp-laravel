@@ -34,9 +34,9 @@ Route::post('payment/success', [UserCheckoutController::class, 'midtransCallback
 
 Route::middleware(['auth'])->group(function () {
     // checkout route
-    Route::get('checkout/success', [UserCheckoutController::class, 'success'])->name('cheackout.success')->middleware('ensureUserRole:user');
-    Route::get('checkout/{camp:slug}', [UserCheckoutController::class, 'create'])->name('cheackout.create')->middleware('ensureUserRole:user');
-    Route::post('checkout/{camp}', [UserCheckoutController::class, 'store'])->name('cheackout.store')->middleware('ensureUserRole:user');
+    Route::get('checkout/success', [UserCheckoutController::class, 'success'])->name('checkout.success')->middleware('ensureUserRole:user');
+    Route::get('checkout/{camp:slug}', [UserCheckoutController::class, 'create'])->name('checkout.create')->middleware('ensureUserRole:user');
+    Route::post('checkout/{camp}', [UserCheckoutController::class, 'store'])->name('checkout.store')->middleware('ensureUserRole:user');
 
     // dashboard route
     Route::get('dashboard', [HomeController::class, 'dashboard'])->name('dashboard');

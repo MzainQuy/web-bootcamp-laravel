@@ -12,14 +12,20 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\Checkout\AfterCheckout;
 use Illuminate\Support\Str;
 use Midtrans;
+use Midtrans\Snap;
+use Midtrans\Config;
 
 class UserCheckoutController extends Controller
 {
     public function __construct()
     {
-        Midtrans\Config::$serverKey = env('MIDTRANS_ SERVERKEY');
+        Midtrans\Config::$serverKey = env('MIDTRANS_SERVERKEY');
+        // Set to Development/Sandbox Environment (default). Set to true for Production Environment (accept real transaction).
         Midtrans\Config::$isProduction = env('MIDTRANS_IS_PRODUCTION');
+        // Set sanitization on (default)
         Midtrans\Config::$isSanitized = env('MIDTRANS_IS_SANITIZED');
+        // Set 3DS transaction for credit card to true
+        Midtrans\Config::$is3ds = env('MIDTRANS_IS_3DS');
     }
 
     /**
@@ -39,17 +45,9 @@ class UserCheckoutController extends Controller
      */
     public function create(Request $request, Camp $camp)
     {
-        // validation and send message
         if ($camp->isRegistered) {
-            // message session
-            $request->session()->flash('error', "You Already Registered on {$camp->title} camp.");
+            $request->session()->flash('error', "You already registered on {$camp->title} camp.");
             return redirect(route('user.dashboard'));
-
-            // and can use with() method for send message validation
-            // return redirect(route('dashboard'))->with($request->session()->flash('error', "You Already Registered on {$camp->title} camp"));
-
-            // or use this
-            // return redirect(route('dashboard'))->with('error', "You Already Registered on {$camp->title} camp");
         }
         return view('checkout.create', [
             'camp' => $camp
@@ -64,27 +62,31 @@ class UserCheckoutController extends Controller
      */
     public function store(Store $request, Camp $camp)
     {
+        if ($camp->isRegistered) {
+            $request->session()->flash('error', "You already registered on {$camp->title} camp.");
+            return redirect(route('user.dashboard'));
+        }
         // mapping request data
         $data = $request->all();
         $data['user_id'] = Auth::id();
         $data['camp_id'] = $camp->id;
 
-        // update user data
+        // update user's data
         $user = Auth::user();
         $user->email = $data['email'];
         $user->name = $data['name'];
         $user->occupation = $data['occupation'];
+        $user->phone = $data['phone'];
+        $user->address = $data['address'];
         $user->save();
 
-        //create checkout user
-        // this variabel create data checkout
+        // create checkout
         $checkout = Checkout::create($data);
         $this->getSnapRedirect($checkout);
 
         // sending email
         Mail::to(Auth::user()->email)->send(new AfterCheckout($checkout));
-
-        return redirect(route('cheackout.success'));
+        return redirect(route('checkout.success'));
     }
 
     /**
@@ -137,56 +139,76 @@ class UserCheckoutController extends Controller
         return view('checkout.success');
     }
 
+    /**
+     * Midtrans Handler
+     */
     public function getSnapRedirect(Checkout $checkout)
     {
-        $orderId = $checkout->id . '-' . Str::random(5);
-        $checkout->midtrans_booking_code = $orderId;
-        $price = $checkout->Camp->price * 1000;
+        $checkout->update([
+            'midtrans_booking_code' => $checkout->id . '-' . Str::random(5)
+        ]);
 
-        $transaction_details = [
-            'order_id' => $orderId,
-            'gross_amount' => $price,
+        // Fill transaction details
+        $transaction_details = array(
+            'order_id' => $checkout->midtrans_booking_code,
+            'gross_amount' => $checkout->Camp->price * 1000
+        );
+
+        // Mandatory for Mandiri bill payment and BCA KlikPay
+        // Optional for other payment methods
+        $item_details[] = [
+            "id" => $checkout->midtrans_booking_code,
+            "price" => $checkout->Camp->price * 1000,
+            "quantity" => 1,
+            "name" => "Payment for {$checkout->Camp->title} Camp"
         ];
 
-        $item_details = [
-            'id' => $orderId,
-            'price' => $price,
-            'name' => "Payment for {$checkout->Camp->title} Camp",
-        ];
+        // Optional
+        $billing_address = array(
+            'first_name'    => $checkout->User->name,
+            'last_name'     => "",
+            'address'       => $checkout->User->address,
+            'city'          => "",
+            'postal_code'   => "",
+            'phone'         => $checkout->User->phone,
+            'country_code'  => 'IDN'
+        );
 
-        $userData = [
-            "first_name" => $checkout->User->name,
-            "last_name" => "",
-            "phone" => $checkout->User->phone,
-            "address" => $checkout->User->address,
-            "city" => "",
-            "postal_code" => "",
-            "country_code" => "IDN"
-        ];
+        // Optional
+        $shipping_address = array(
+            'first_name'    => $checkout->User->name,
+            'last_name'     => "",
+            'address'       => $checkout->User->address,
+            'city'          => "",
+            'phone'         => $checkout->User->phone,
+            'postal_code'   => "",
+            'country_code'  => 'IDN'
+        );
 
-        $customer_details = [
-            "first_name" => $checkout->User->name,
-            "last_name" => "",
-            "phone" => $checkout->User->phone,
-            "email" => $checkout->User->email,
-            "billing_address" => $userData,
-            "shipping_address" => $userData,
-        ];
+        $customer_details = array(
+            'first_name'    => $checkout->User->name, //optional
+            'last_name'     => "", //optional
+            'email'         => $checkout->User->email, //mandatory
+            'phone'         => $checkout->User->phone, //mandatory
+            'billing_address'  => $billing_address, //optional
+            'shipping_address' => $shipping_address //optional
+        );
 
-        $midtrans_params = [
-            'transiction_details' => $transaction_details,
+        // Fill transaction details
+        $params = array(
+            'transaction_details' => $transaction_details,
             'customer_details' => $customer_details,
             'item_details' => $item_details,
-        ];
-
+        );
         try {
-            //get snap payment page url
+            // Get Snap Payment Page URL
             $paymentUrl = \Midtrans\Snap::createTransaction($params)->redirect_url;
             $checkout->midtrans_url = $paymentUrl;
             $checkout->save();
 
+            // Send to Snap Payment Page
             return $paymentUrl;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return false;
         }
     }
@@ -200,6 +222,7 @@ class UserCheckoutController extends Controller
 
         $checkout_id = explode('-', $notif->order_id)[0];
         $checkout = Checkout::find($checkout_id);
+
         if ($transaction_status == 'capture') {
             if ($fraud == 'challenge') {
                 // TODO Set payment status in merchant's database to 'challenge'
@@ -207,6 +230,7 @@ class UserCheckoutController extends Controller
             } else if ($fraud == 'accept') {
                 // TODO Set payment status in merchant's database to 'success'
                 $checkout->payment_status = 'paid';
+                $checkout->User->update();
             }
         } else if ($transaction_status == 'cancel') {
             if ($fraud == 'challenge') {
@@ -222,6 +246,7 @@ class UserCheckoutController extends Controller
         } else if ($transaction_status == 'settlement') {
             // TODO set payment status in merchant's database to 'Settlement'
             $checkout->payment_status = 'paid';
+            $checkout->User->update();
         } else if ($transaction_status == 'pending') {
             // TODO set payment status in merchant's database to 'Pending'
             $checkout->payment_status = 'pending';

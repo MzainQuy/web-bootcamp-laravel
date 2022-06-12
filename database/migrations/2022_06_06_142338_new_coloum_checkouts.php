@@ -15,8 +15,8 @@ return new class extends Migration
     {
         Schema::table('checkouts', function (Blueprint $table) {
             $table->string('payment_status', 100)->default('waiting')->after('camp_id');
-            $table->string('midtrans_url', 100)->nullable()->after('payment_status');
-            $table->string('midtrans_booking_code', 100)->nullable()->after('midtrans_url');
+            $table->string('midtrans_url')->nullable()->after('payment_status');
+            $table->string('midtrans_booking_code')->nullable()->after('midtrans_url');
         });
     }
 
